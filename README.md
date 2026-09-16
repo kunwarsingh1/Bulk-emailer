@@ -7,7 +7,7 @@ A single-user personal email outreach and manual follow-up application.
 - Add contacts
 - Write and send personalized emails to one or many contacts
 - Preview every personalized email before sending
-- Track sent/delivered/bounced/opened/clicked emails
+- Track sent/opened/clicked emails
 - Store email conversations for every contact
 - Return days or weeks later and write a manual follow-up
 - Send follow-ups as part of the existing email thread
@@ -21,25 +21,18 @@ A single-user personal email outreach and manual follow-up application.
 - Tailwind CSS + shadcn-style components
 - MongoDB (Mongoose)
 - Redis + BullMQ (background email sending)
-- Resend (email provider with webhooks)
+- Nodemailer (SMTP)
 - Zod + React Hook Form
 - iron-session (authentication)
 
 ## Setup
 
 ```bash
-# Install dependencies
 npm install
-
-# Copy environment variables
 cp .env.example .env.local
-
-# Configure .env.local with your Resend API key
-
-# Run the dev server
+# Configure .env.local with your SMTP settings
 npm run dev
-
-# Run the email worker (in a separate terminal)
+# In a separate terminal:
 npm run worker
 ```
 
@@ -49,65 +42,41 @@ npm run worker
 |----------|-------------|
 | `APP_USERNAME` | Login username |
 | `APP_PASSWORD` | Login password |
-| `SESSION_SECRET` | Optional. Auto-derived from APP_PASSWORD if not set |
-| `MONGODB_URI` | MongoDB connection URI (e.g., `mongodb://localhost:27017`) |
+| `MONGODB_URI` | MongoDB connection URI |
 | `MONGODB_DB` | Database name (default: `email_outreach`) |
-| `REDIS_URL` | Redis connection URL (e.g., `redis://localhost:6379`) |
-| `EMAIL_PROVIDER` | Email provider (`resend`) |
-| `RESEND_API_KEY` | Resend API key |
-| `RESEND_WEBHOOK_SECRET` | Resend webhook signing secret |
+| `REDIS_URL` | Redis connection URL |
+| `SMTP_HOST` | SMTP server hostname |
+| `SMTP_PORT` | SMTP port (587 for TLS, 465 for SSL) |
+| `SMTP_USER` | SMTP username / email |
+| `SMTP_PASS` | SMTP password or app password |
 | `EMAIL_FROM` | Sender email address |
 | `EMAIL_FROM_NAME` | Sender display name |
 | `APP_URL` | Public URL (required for tracking pixels) |
 | `SEND_RATE_PER_MINUTE` | Sending rate limit (default: `10`) |
 | `TRACKING_ENABLED` | Enable open/click tracking (`true`/`false`) |
 
-## Resend Configuration
+## SMTP Examples
 
-### Domain Setup
-1. Add and verify your domain at https://resend.com/domains
-2. Set `EMAIL_FROM` to an address on your verified domain
-
-### Webhooks
-Configure webhooks in Resend dashboard:
-- **Delivery events**: `https://yourdomain.com/api/webhook/events`
-- **Inbound emails**: Create a route for `replies@yourdomain.com` → `https://yourdomain.com/api/webhook/inbound`
-- Set the webhook secret and add it to `RESEND_WEBHOOK_SECRET`
-
-### Tracking
-Set `APP_URL` to your publicly accessible URL. This is required for open tracking pixels and click tracking redirects.
-
-## Architecture
-
+### Gmail
 ```
-Contact
-   └── Conversation
-          └── Email (Messages)
-                 └── Events
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=you@gmail.com
+SMTP_PASS=your-app-password
 ```
 
-- **Contacts**: People you're reaching out to
-- **Conversations**: Email threads with a contact
-- **Emails**: Individual messages (inbound/outbound)
-- **Events**: Delivery status changes
-
-## Background Worker
-
-The email worker processes sending jobs from Redis:
-
-```bash
-npm run worker
+### Outlook
 ```
-
-The worker rate-limits sending to respect provider limits. It continues processing even if the browser is closed.
+SMTP_HOST=smtp-mail.outlook.com
+SMTP_PORT=587
+SMTP_USER=you@outlook.com
+SMTP_PASS=your-password
+```
 
 ## Features
 
-- **Bulk Import**: Paste contacts in various formats (CSV, angle-bracket, email-only)
+- **Bulk Import**: Paste contacts in various formats
 - **Personalization**: Use `[[Name]]` in subjects and bodies
 - **Pre-send Preview**: Review every personalized email before sending
 - **Threaded Follow-ups**: Follow-ups include `In-Reply-To` and `References` headers
 - **Open/Click Tracking**: Pixel-based tracking with cryptographic tokens
-- **Delivery Webhooks**: Real bounce/complaint handling from Resend
-- **Inbound Replies**: Received replies appear in the conversation thread
-- **Suppression List**: Bounced/complained addresses are automatically suppressed

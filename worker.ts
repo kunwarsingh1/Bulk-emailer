@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { processEmailJob } from './lib/send-processor';

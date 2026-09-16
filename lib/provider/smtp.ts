@@ -1,14 +1,24 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-let client: Resend | null = null;
+let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
-function getResend(): Resend {
-  if (!client) {
-    const key = process.env.RESEND_API_KEY;
-    if (!key) throw new Error('RESEND_API_KEY is not set');
-    client = new Resend(key);
+function getTransporter() {
+  if (!transporter) {
+    const host = process.env.SMTP_HOST;
+    const port = parseInt(process.env.SMTP_PORT ?? '587', 10);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+
+    if (!host) throw new Error('SMTP_HOST is not set');
+
+    transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: user && pass ? { user, pass } : undefined,
+    });
   }
-  return client;
+  return transporter;
 }
 
 export interface ProviderSendInput {
@@ -31,6 +41,8 @@ export async function sendEmail(input: ProviderSendInput): Promise<ProviderSendR
     ? `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`
     : process.env.EMAIL_FROM ?? '';
 
+  const to = input.toName ? `${input.toName} <${input.to}>` : input.to;
+
   const headers: Record<string, string> = {};
   if (input.inReplyTo) {
     headers['In-Reply-To'] = input.inReplyTo;
@@ -39,23 +51,19 @@ export async function sendEmail(input: ProviderSendInput): Promise<ProviderSendR
     }
   }
 
-  const toArr = input.toName
-    ? [{ email: input.to, name: input.toName }]
-    : [input.to];
-
-  const { data, error } = await getResend().emails.send({
+  const info = await getTransporter().sendMail({
     from,
-    to: toArr as string[],
+    to,
     subject: input.subject,
     html: input.html,
     text: input.text,
     headers,
   });
 
-  if (error) throw new Error(`Email provider error: ${error.message}`);
+  const messageId = info.messageId ?? `<${Date.now()}@outreach>`;
 
-  const providerId = (data as { id?: string })?.id;
-  if (!providerId) throw new Error('Email provider did not return an id');
-
-  return { providerId, messageId: `<${providerId}@resend.com>` };
+  return {
+    providerId: messageId,
+    messageId,
+  };
 }
