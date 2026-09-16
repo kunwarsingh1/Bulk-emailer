@@ -21,7 +21,7 @@ A single-user personal email outreach and manual follow-up application.
 - Tailwind CSS + shadcn-style components
 - MongoDB (Mongoose)
 - Redis + BullMQ (background email sending)
-- Resend (email provider)
+- Resend (email provider with webhooks)
 - Zod + React Hook Form
 - iron-session (authentication)
 
@@ -34,7 +34,7 @@ npm install
 # Copy environment variables
 cp .env.example .env.local
 
-# Configure .env.local with your values (see below)
+# Configure .env.local with your Resend API key
 
 # Run the dev server
 npm run dev
@@ -111,4 +111,3 @@ The worker rate-limits sending to respect provider limits. It continues processi
 - **Delivery Webhooks**: Real bounce/complaint handling from Resend
 - **Inbound Replies**: Received replies appear in the conversation thread
 - **Suppression List**: Bounced/complained addresses are automatically suppressed
-# Bulk-emailer
